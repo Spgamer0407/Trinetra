@@ -10,6 +10,7 @@ YUNET_MODEL_PATH = ROOT_DIR / "face_detection_yunet_2023mar.onnx"
 MODEL_OUTPUT = ROOT_DIR / "trinetra_rf_model.pkl"
 FEATURES_PATH = ROOT_DIR / "features.npy"
 LABELS_PATH = ROOT_DIR / "labels.npy"
+METRICS_REPORT_PATH = ROOT_DIR / "metrics_report.json"
 SAMPLE_VIDEO = ROOT_DIR / "sample.mp4"
 FORENSIC_LEDGER = ROOT_DIR / "forensic_ledger.json"
 

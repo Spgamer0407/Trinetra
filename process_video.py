@@ -175,7 +175,8 @@ def process_video(
             gradcam_model = DenseNet201(weights="imagenet", include_top=True)
 
         face_predictions = []
-        frame_fake_probabilities = []
+        face_fake_probabilities = []
+        frames_analyzed = 0
         flagged_frames = []
         flagged_frame_phashes = []
         for idx in frame_indices:
@@ -188,7 +189,6 @@ def process_video(
             if not cropped_faces:
                 continue
 
-            current_frame_fake_probabilities = []
             frame_is_fake = False
             for rank, cropped_face in enumerate(cropped_faces, start=1):
                 filename = output_dir / f"face_frame_{idx:05d}_rank_{rank}.jpg"
@@ -208,7 +208,7 @@ def process_video(
                         crop_path=filename,
                     )
                 )
-                current_frame_fake_probabilities.append(fake_probability)
+                face_fake_probabilities.append(fake_probability)
                 frame_is_fake = frame_is_fake or label == "FAKE"
                 print(
                     f"  Frame {idx}, face {rank}: {label} "
@@ -232,8 +232,7 @@ def process_video(
                     cv2.imwrite(str(out_cam_path), superimposed)
                     print(f"  [Explainability] Saved visual evidence to: {out_cam_path}")
 
-            frame_fake_probability = float(np.mean(current_frame_fake_probabilities))
-            frame_fake_probabilities.append(frame_fake_probability)
+            frames_analyzed += 1
             if frame_is_fake:
                 frame_index = int(idx)
                 flagged_frames.append(frame_index)
@@ -247,7 +246,7 @@ def process_video(
         cap.release()
 
     mean_fake_probability = (
-        float(np.mean(frame_fake_probabilities)) if frame_fake_probabilities else None
+        float(np.mean(face_fake_probabilities)) if face_fake_probabilities else None
     )
     if mean_fake_probability is None:
         verdict = "NO FACE DETECTED"
@@ -255,14 +254,14 @@ def process_video(
         confidence = None
         print("No faces were detected in the sampled video frames; unable to classify video.")
     else:
-        is_fake = mean_fake_probability > threshold
+        is_fake = mean_fake_probability >= threshold
         verdict = "FAKE / MANIPULATED" if is_fake else "REAL / AUTHENTIC"
         final_verdict = "FAKE" if is_fake else "REAL"
         confidence = mean_fake_probability if is_fake else 1.0 - mean_fake_probability
         print(
             f"Video verdict: {verdict} "
             f"(mean fake probability {mean_fake_probability:.1%} across "
-            f"{len(frame_fake_probabilities)} analyzed frames; threshold {threshold:.1%})."
+            f"{frames_analyzed} analyzed frames; threshold {threshold:.1%})."
         )
 
     report_dir = ensure_dir(REPORT_DIR)
@@ -272,7 +271,7 @@ def process_video(
         "sha256": sha256,
         "final_verdict": final_verdict,
         "confidence": confidence,
-        "total_frames_analyzed": len(frame_fake_probabilities),
+        "total_frames_analyzed": frames_analyzed,
         "flagged_frames": flagged_frames,
         "flagged_frame_phashes": flagged_frame_phashes,
     }
@@ -285,7 +284,7 @@ def process_video(
         verdict=verdict,
         threshold=threshold,
         mean_fake_probability=mean_fake_probability,
-        frames_analyzed=len(frame_fake_probabilities),
+        frames_analyzed=frames_analyzed,
         face_predictions=face_predictions,
         output_dir=output_dir,
         report_path=report_path,

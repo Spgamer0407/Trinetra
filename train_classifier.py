@@ -1,3 +1,4 @@
+import json
 import os
 import re
 from pathlib import Path
@@ -5,10 +6,16 @@ from pathlib import Path
 import joblib
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
 
-from config import FEATURES_PATH, LABELS_PATH, MODEL_OUTPUT, PROCESSED_DIR
+from config import (
+    FEATURES_PATH,
+    LABELS_PATH,
+    METRICS_REPORT_PATH,
+    MODEL_OUTPUT,
+    PROCESSED_DIR,
+)
 
 VIDEO_FRAME_PATTERN = re.compile(r"(real|fake)_(\d+)_frame\d+\.(?:jpg|png)", re.IGNORECASE)
 TEST_SIZE = 0.2
@@ -92,8 +99,51 @@ def train_classifier(processed_dir: str | os.PathLike[str] = PROCESSED_DIR, mode
     clf.fit(X_train, y_train)
 
     preds = clf.predict(X_test)
-    print(f"\nFinal Test Accuracy: {accuracy_score(y_test, preds) * 100:.2f}%\n")
-    print(classification_report(y_test, preds, target_names=["REAL", "FAKE"]))
+    accuracy = float(accuracy_score(y_test, preds))
+    report = classification_report(
+        y_test,
+        preds,
+        labels=[0, 1],
+        target_names=["REAL", "FAKE"],
+        output_dict=True,
+        zero_division=0,
+    )
+    matrix = confusion_matrix(y_test, preds, labels=[0, 1])
+    true_real, false_fake, false_real, true_fake = matrix.ravel()
+    evaluation = {
+        "evaluation_unit": "face crops from held-out videos",
+        "video_level_split": {
+            "training_videos": len(train_video_set),
+            "test_videos": len(test_video_set),
+            "test_faces": len(test_indices),
+        },
+        "accuracy": accuracy,
+        "confusion_matrix": {
+            "labels": ["REAL", "FAKE"],
+            "rows": "actual",
+            "columns": "predicted",
+            "matrix": matrix.tolist(),
+        },
+        "confusion_matrix_counts": {
+            "true_real": int(true_real),
+            "false_real": int(false_real),
+            "true_fake": int(true_fake),
+            "false_fake": int(false_fake),
+        },
+        "classification_report": report,
+    }
+    with METRICS_REPORT_PATH.open("w", encoding="utf-8") as report_file:
+        json.dump(evaluation, report_file, indent=2)
+
+    print(f"\nFinal Test Accuracy: {accuracy * 100:.2f}%\n")
+    print(classification_report(
+        y_test,
+        preds,
+        labels=[0, 1],
+        target_names=["REAL", "FAKE"],
+        zero_division=0,
+    ))
+    print(f"Evaluation metrics saved to: {METRICS_REPORT_PATH}")
 
     joblib.dump(clf, model_output)
     print(f"Trained model saved successfully to: {model_output}")
