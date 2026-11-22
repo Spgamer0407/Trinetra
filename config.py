@@ -1,10 +1,17 @@
+import os
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent
 
+# Ensure Keras cache and weights are loaded from the workspace
+KERAS_CACHE_DIR = ROOT_DIR / ".keras"
+os.environ["KERAS_HOME"] = str(KERAS_CACHE_DIR)
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
 DATASET_DIR = ROOT_DIR / "dataset"
 PROCESSED_DIR = ROOT_DIR / "processed_faces"
 OUTPUT_DIR = ROOT_DIR / "output_faces"
+IMAGE_OUTPUT_DIR = ROOT_DIR / "outputs" / "images"
 REPORT_DIR = ROOT_DIR / "outputs" / "reports"
 YUNET_MODEL_PATH = ROOT_DIR / "face_detection_yunet_2023mar.onnx"
 MODEL_OUTPUT = ROOT_DIR / "trinetra_rf_model.pkl"

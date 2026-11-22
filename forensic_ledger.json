@@ -1,0 +1,62 @@
+[
+    {
+        "file_name": "forensic_fingerprint.py",
+        "timestamp": "2026-11-02T13:36:15.644651+00:00",
+        "sha256": "d50a7778b65da9f66362e843f9ae94072595e7875c9553f224ebcb16678eba13",
+        "phash": "N/A (Video / Non-Image File)"
+    },
+    {
+        "file_name": "forensic_fingerprint.py",
+        "timestamp": "2026-11-22T04:26:59.128345+00:00",
+        "sha256": "7b88cbf5f2e88834f4721d0127058799f0df42f79f537d63ca71996f8c1d11e5",
+        "phash": "N/A (Video / Non-Image File)"
+    },
+    {
+        "file_name": "test_face.jpg",
+        "timestamp": "2026-11-22T04:43:38.338654+00:00",
+        "sha256": "a896f5ce03f09c97d3d790123c70661843193e7d33573cb747185b7053fc6225",
+        "phash": "eff4236e86829c89",
+        "verdict": "REAL",
+        "confidence": 0.5900000000000001
+    },
+    {
+        "file_name": "face_frame_00978_rank_1.jpg",
+        "timestamp": "2026-11-22T13:06:04.367289+00:00",
+        "sha256": "092475eb47fbc7c9360b8c077249e5358f6658aac3cc060f0e8fbb3a221c2226",
+        "phash": "ce342bd3e092bc63",
+        "verdict": "REAL",
+        "confidence": 0.5700000000000001
+    },
+    {
+        "file_name": "face_frame_00277_rank_1.jpg",
+        "timestamp": "2026-11-22T13:22:50.257795+00:00",
+        "sha256": "040decf1fe5b067f64199c1607ff2e234ad0713869e447f7174f501d8325629d",
+        "phash": "825f7b64712165a7",
+        "verdict": "REAL",
+        "confidence": 0.42000000000000004
+    },
+    {
+        "file_name": "face_frame_00128_rank_1.jpg",
+        "timestamp": "2026-11-22T13:25:02.540577+00:00",
+        "sha256": "6f929e297af25f346c5b3e889955ac954f40dec48218a3ba0c5da68287223215",
+        "phash": "96eaeae1a4a5e483",
+        "verdict": "REAL",
+        "confidence": 0.31999999999999995
+    },
+    {
+        "file_name": "face_frame_00021_rank_1.jpg",
+        "timestamp": "2026-11-22T13:26:55.257938+00:00",
+        "sha256": "add51d9e4019bfa1505d7257577d7ec1e2882caaf6d20c3f13bc3916f7a759c9",
+        "phash": "a37daae0a523b594",
+        "verdict": "REAL",
+        "confidence": 0.36
+    },
+    {
+        "file_name": "image.jpg",
+        "timestamp": "2026-11-22T16:45:42.613496+00:00",
+        "sha256": "a75b578aa11202c54b77fcf6aeac56b03a9299ef25292a73c0fd46127d703570",
+        "phash": "943b6cc43776c32c",
+        "verdict": "REAL",
+        "confidence": 0.6599999999999999
+    }
+]

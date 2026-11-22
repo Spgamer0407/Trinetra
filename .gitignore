@@ -12,6 +12,8 @@ outputs/
 *.pkl
 *.onnx
 *.mp4
+*.h5
+.keras/
 
 cropped_224.jpg
 gradcam_validation_output.jpg

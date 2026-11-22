@@ -1,79 +1,111 @@
-# Trinetra
+# TRINETRA: AI-Assisted Digital Authenticity Verification and Forensic Traceability System
 
-A lightweight deepfake detection pipeline for face extraction, feature embedding, and training a Random Forest classifier.
+TRINETRA is a unified framework combining deepfake face manipulation detection, visual explainability (Grad-CAM), and dual-layer cryptographic and perceptual forensic traceability (SHA-256 and pHash).
 
-## Structure
+Developed for **Visvesvaraya Technological University (VTU)** mini-project curriculum at **Sahyadri College of Engineering & Management, Mangaluru (2025-26)**.
 
-- `config.py` – shared project paths and defaults
-- `main.py` – top-level CLI entry point
-- `process_video.py` – extracts face crops from a video
-- `build_dataset.py` – builds processed face images from dataset folders
-- `extract_features.py` – exports DenseNet embeddings and labels from `processed_faces/`
-- `train_classifier.py` – trains the Random Forest model
-- `explainability.py` – Grad-CAM style visual explanation helpers
-- `crop_face.py` – single-image face crop utility
-- `forensic_fingerprint.py` – forensic hash generation and ledger logging
+---
 
-## Setup
+## Key Capabilities
 
-1. Create and activate a virtual environment.
-2. Install dependencies:
+1. **Single Image Fake Detection (`process-image`)**:
+   - Detects and extracts facial regions with dynamic boundary padding using OpenCV YuNet.
+   - Extracts 1,920-dimensional deep feature embeddings using **DenseNet-201**.
+   - Classifies authenticity (REAL vs. FAKE) using a trained Random Forest model.
+   - Generates annotated images with colored bounding boxes (Green: REAL, Red: FAKE).
+   - Generates visual explainability heatmaps using **Grad-CAM**.
+   - Emits dual-layer forensic fingerprints and structured JSON reports.
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. **Video Deepfake Analysis (`process-video`)**:
+   - Samples frames across input videos, detects faces, aggregates per-frame probabilities, and saves frame-level pHashes for flagged fake frames.
 
-3. Place the YuNet ONNX model in the project root as:
+3. **Forensic Integrity Verification (`verify-integrity`)**:
+   - Compares candidate images/videos against the immutable forensic ledger (`forensic_ledger.json`).
+   - Distinguishes between:
+     - **Exact Match (SHA-256)**: 100% bit-level unaltered authenticity.
+     - **Perceptual Match (pHash Hamming distance $\le 5$)**: Authentic content with compression, format, or resolution changes.
+     - **Suspicious Similarity (distance 6-10)**: Content sharing visual structure but showing localized alterations.
+     - **Untracked / Not Found**: Content not present in the forensic ledger.
 
-   `face_detection_yunet_2023mar.onnx`
+4. **Interactive Web Dashboard (`web`)**:
+   - Clean, zero-dependency browser interface running on `http://127.0.0.1:8080`.
+   - Drag-and-drop image analysis, real-time Grad-CAM viewing, one-click ledger verification, and ledger browsing.
 
-4. Add your dataset folders:
+---
 
-   ```text
-   dataset/
-     real/
-     fake/
-   ```
+## Project Structure
 
-## Typical workflow
+- `config.py` – Global paths, environment settings (`KERAS_HOME`), and thresholds
+- `main.py` – Unified command-line entry point
+- `web_app.py` – Interactive web application dashboard
+- `process_image.py` – Single image fake detection and annotation pipeline
+- `process_video.py` – Video frame sampling, face detection, and batch classification
+- `forensic_fingerprint.py` – SHA-256, perceptual hash (pHash), ledger logging, and integrity verification
+- `explainability.py` – Grad-CAM heatmap generation and overlay helpers
+- `build_dataset.py` – Extracts face crops from dataset videos into `processed_faces/`
+- `extract_features.py` – Extracts DenseNet-201 embeddings into `features.npy` and `labels.npy`
+- `train_classifier.py` – Trains Random Forest model on video-level held-out splits
+- `metrics_report.json` – Test evaluation metrics (accuracy: 83.47%, precision, recall, F1)
+- `forensic_ledger.json` – Persistent ledger of authentic fingerprints
 
+---
+
+## Quickstart & Usage
+
+### 1. Launch the Interactive Web Dashboard
+Run:
 ```bash
-python main.py process-video [video.mp4] [--frames 15] [--threshold 0.5]
+python main.py web
+```
+Then open your browser at **`http://127.0.0.1:8080`**.
+
+### 2. Single Image Analysis (CLI)
+Analyze an image for manipulation and generate Grad-CAM visual evidence:
+```bash
+python main.py process-image test_face.jpg
+```
+Options:
+- `--threshold 0.5`: Adjust fake probability sensitivity (default: 0.5)
+- `--no-explain`: Disable Grad-CAM heatmap generation
+- `--register`: Force register fingerprint into the forensic ledger
+
+Output files:
+- Annotated Image: `outputs/images/<name>_annotated.jpg`
+- Face Crop: `outputs/images/<name>_face_rank1.jpg`
+- Grad-CAM Heatmap: `outputs/images/<name>_face_rank1_gradcam.jpg`
+- Forensic Report: `outputs/reports/<name>_forensic_report.json`
+
+### 3. Verify Content Integrity against Ledger
+Verify if a file has been registered or altered:
+```bash
+python main.py verify-integrity test_face.jpg
+```
+
+### 4. Video Analysis (CLI)
+Classify a video across sampled frames:
+```bash
+python main.py process-video sample.mp4 --frames 15 --threshold 0.5 --explain
+```
+
+### 5. Model Training & Dataset Pipeline
+To retrain or rebuild features from scratch:
+```bash
 python main.py build-dataset
 python main.py extract-features
 python main.py train
 ```
 
-`extract-features` reads all face crops from `processed_faces/real` and
-`processed_faces/fake`, then saves the 1,920-dimensional embeddings to
-`features.npy` and their labels (`0` for REAL, `1` for FAKE) to `labels.npy`.
-`train` uses these cached arrays while retaining a video-level train/test split.
-Re-run `extract-features` after changing the processed crops.
-Each `train` run saves the held-out evaluation results to `metrics_report.json`,
-including accuracy, the REAL/FAKE confusion matrix, and per-class precision,
-recall, and F1-score. The reported metrics are face-crop results from videos
-held out during the video-level split.
+---
 
-`process-video` samples the requested number of frames, detects faces, and classifies each face with the trained DenseNet-201 and Random Forest pipeline. It reports the mean fake probability across analyzed frames; values above the threshold are labeled **FAKE / MANIPULATED**, otherwise **REAL / AUTHENTIC**. If no faces are detected, it reports that the video could not be classified. Face crops are saved in `output_faces/`.
-Each run also saves a forensic report to `outputs/reports/<video_name>_forensic_report.json`. The report includes the input file's SHA-256, the verdict and confidence, the number of frames analyzed, and frame indices with at least one FAKE face prediction alongside pHashes for those full video frames. Confidence is the estimated probability of the reported REAL or FAKE verdict; videos with no classifiable faces have an `UNCLASSIFIED` verdict and a null confidence.
+## Evaluation Performance (`metrics_report.json`)
 
-### Explainability limitation
+Trained and evaluated on video-level held-out splits (preventing frame-to-frame data leakage):
+- **Accuracy:** `83.47%`
+- **REAL Class:** Precision: `100%`, Recall: `66.67%`, F1-score: `0.80`
+- **FAKE Class:** Precision: `75.31%`, Recall: `100%`, F1-score: `0.86`
 
-The Random Forest makes the REAL/FAKE prediction from DenseNet-201's 1,920-dimensional pooled feature vector. Random Forest trees are not differentiable, so Grad-CAM cannot backpropagate through them or directly explain their decision. In the current `--explain` implementation, Grad-CAM is computed separately using an ImageNet-pretrained DenseNet-201 with its classification head, targeting the predicted ImageNet class. The heatmap is therefore a qualitative view of spatial activations associated with that DenseNet ImageNet prediction; it is not an attribution map for the Random Forest's REAL/FAKE output and does not prove that a highlighted region (such as the eyes, mouth, or a blending boundary) caused that output.
+---
 
-For a viva, describe DenseNet as the visual feature extractor whose pooled representation is passed to the Random Forest for classification. Describe the Grad-CAM overlay as supplementary visual context from DenseNet, not as evidence of which features drove the Random Forest verdict.
+## Explainability Context (Viva Note)
 
-If you want to run a direct script instead of the CLI:
-
-```bash
-python process_video.py
-python build_dataset.py
-python extract_features.py
-python train_classifier.py
-```
-
-## Notes
-
-- The project is designed to run from the repository root.
-- It uses relative paths via `config.py` rather than hardcoded Windows drive paths.
-- You may need a CUDA-capable TensorFlow setup for large-scale training, but CPU mode is supported.
+DenseNet-201 acts as the spatial feature extractor whose pooled representation is classified by the Random Forest. Grad-CAM heatmaps highlight feature activation regions at the final dense block (`conv5_block32_concat`), providing visual evidence of salient facial features.

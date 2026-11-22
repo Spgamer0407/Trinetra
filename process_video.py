@@ -3,13 +3,6 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-import cv2
-import joblib
-import numpy as np
-from PIL import Image
-from tensorflow.keras.applications.densenet import DenseNet201, preprocess_input
-from tensorflow.keras.preprocessing.image import img_to_array
-
 from config import (
     DEFAULT_NUM_FRAMES,
     MODEL_OUTPUT,
@@ -20,6 +13,13 @@ from config import (
     YUNET_MODEL_PATH,
     ensure_dir,
 )
+
+import cv2
+import joblib
+import numpy as np
+from PIL import Image
+from tensorflow.keras.applications.densenet import DenseNet201, preprocess_input
+from tensorflow.keras.preprocessing.image import img_to_array
 from explainability import get_gradcam_heatmap, overlay_heatmap
 from forensic_fingerprint import calculate_phash, calculate_sha256
 

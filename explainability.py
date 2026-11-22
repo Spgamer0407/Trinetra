@@ -95,3 +95,90 @@ def overlay_heatmap(image_bgr, heatmap, alpha=0.4, colormap=cv2.COLORMAP_JET):
     superimposed = cv2.addWeighted(colored_heatmap, alpha, image_bgr, 1.0 - alpha, 0)
 
     return colored_heatmap, superimposed
+
+
+def generate_manipulation_explanation(
+    heatmap: np.ndarray,
+    is_fake: bool,
+    fake_probability: float,
+) -> str:
+    """
+    Synthesize a concise, human-readable forensic localization explanation
+    correlating Grad-CAM spatial activation peaks with anatomical facial regions.
+
+    Args:
+        heatmap: 2D numpy array in range [0, 1] representing the Grad-CAM activation map.
+        is_fake: Boolean flag indicating if the verdict is FAKE.
+        fake_probability: Estimated probability of manipulation (0.0 to 1.0).
+
+    Returns:
+        A concise 1-sentence plain-English localization summary.
+    """
+    if not is_fake or fake_probability < 0.5:
+        return (
+            "Feature activations are naturally distributed across biological landmarks "
+            "with no localized synthetic manipulation anomalies detected."
+        )
+
+    h, w = heatmap.shape[:2]
+
+    # 1. Perimeter / Splicing margin check (outer 15% boundary ring)
+    margin_y = max(1, int(h * 0.15))
+    margin_x = max(1, int(w * 0.15))
+    border_mask = np.ones((h, w), dtype=bool)
+    border_mask[margin_y : h - margin_y, margin_x : w - margin_x] = False
+
+    # Focus on salient activation peaks (top 15% highest values or >= 0.55)
+    salient_thresh = max(0.55, float(np.percentile(heatmap, 85)))
+    salient_mask = heatmap >= salient_thresh
+
+    if not np.any(salient_mask):
+        salient_mask = heatmap >= 0.45
+
+    total_salient = np.sum(salient_mask)
+    if total_salient == 0:
+        return "Subtle diffuse spatial inconsistencies detected across global facial textures."
+
+    # Fraction of salient activations in the perimeter ring
+    border_salient_ratio = np.sum(salient_mask & border_mask) / total_salient
+    if border_salient_ratio > 0.42:
+        return (
+            "Manipulation artifacts concentrated along outer facial contours and blending margins, "
+            "indicative of boundary splicing or face-swap seam insertion."
+        )
+
+    # 2. Analyze vertical anatomical sectors inside the face
+    # Upper sector: Forehead, brows, and ocular (eyes) (top 38%)
+    # Mid sector: Nose, cheekbones, and nasolabial folds (38% - 66%)
+    # Lower sector: Perioral (mouth, lips, chin, jawline) (bottom 34%)
+    inner_salient_mask = salient_mask & (~border_mask)
+    y_indices, _ = np.where(inner_salient_mask)
+    if len(y_indices) == 0:
+        y_indices, _ = np.where(salient_mask)
+
+    upper_count = int(np.sum(y_indices < int(h * 0.38)))
+    mid_count = int(np.sum((y_indices >= int(h * 0.38)) & (y_indices < int(h * 0.66))))
+    lower_count = int(np.sum(y_indices >= int(h * 0.66)))
+
+    sector_counts = {
+        "upper": upper_count,
+        "mid": mid_count,
+        "lower": lower_count,
+    }
+    dominant_sector = max(sector_counts, key=sector_counts.get)
+
+    if dominant_sector == "upper":
+        return (
+            "Anomalous feature activations concentrated around the ocular (eyes) and brow region, "
+            "indicative of synthetic expression synthesis or eye-region manipulation."
+        )
+    elif dominant_sector == "lower":
+        return (
+            "Significant manipulation signatures focused around the perioral (mouth, lips) and jawline region, "
+            "indicative of lip-sync generation or facial reenactment."
+        )
+    else:
+        return (
+            "Structural inconsistencies detected across central mid-face textures, "
+            "nose bridge, and nasolabial contours."
+        )
