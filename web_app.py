@@ -417,7 +417,6 @@ HTML_PAGE = """<!DOCTYPE html>
       <button class="tab-btn active" onclick="switchTab('detect')">🔍 Fake Image Detection</button>
       <button class="tab-btn" onclick="switchTab('verify')">🛡️ Forensic Integrity Verification</button>
       <button class="tab-btn" onclick="switchTab('ledger')">📜 Forensic Ledger</button>
-      <button class="tab-btn" onclick="switchTab('about')">ℹ️ Abstract & Architecture</button>
     </div>
 
     <!-- TAB 1: DETECTION -->
@@ -464,18 +463,35 @@ HTML_PAGE = """<!DOCTYPE html>
               <div class="verdict-sub" id="verdictSub">Analyzed using DenseNet-201 and YuNet Facial Alignment</div>
             </div>
 
-            <div class="metrics-row">
-              <div class="metric-card">
-                <div class="metric-num" id="metricConf">--%</div>
-                <div class="metric-lbl">Confidence</div>
+            <div class="metrics-row" style="grid-template-columns: repeat(4, 1fr);">
+              <div class="metric-card" style="border-top: 3px solid var(--accent-green);">
+                <div class="metric-num" id="metricRealProb" style="color: var(--accent-green);">--%</div>
+                <div class="metric-lbl">Real Probability</div>
               </div>
-              <div class="metric-card">
-                <div class="metric-num" id="metricFakeProb">--%</div>
+              <div class="metric-card" style="border-top: 3px solid var(--accent-red);">
+                <div class="metric-num" id="metricFakeProb" style="color: var(--accent-red);">--%</div>
                 <div class="metric-lbl">Fake Probability</div>
+              </div>
+              <div class="metric-card" style="border-top: 3px solid var(--accent-cyan);">
+                <div class="metric-num" id="metricConf" style="color: var(--accent-cyan);">--%</div>
+                <div class="metric-lbl">Confidence</div>
               </div>
               <div class="metric-card">
                 <div class="metric-num" id="metricFaces">0</div>
                 <div class="metric-lbl">Faces Detected</div>
+              </div>
+            </div>
+
+            <!-- Probability Distribution Split Bar -->
+            <div style="margin: 14px 0 16px; background: rgba(0,0,0,0.25); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 14px;">
+              <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; font-weight: 600;">
+                <span style="color: var(--accent-green);">🟢 Authentic (Real): <span id="barRealText">50%</span></span>
+                <span id="barThreshText" style="color: var(--text-muted); font-size: 11px; font-family: var(--font-mono);">Decision Threshold: 50%</span>
+                <span style="color: var(--accent-red);">🔴 Manipulated (Fake): <span id="barFakeText">50%</span></span>
+              </div>
+              <div style="height: 10px; background: rgba(255,255,255,0.08); border-radius: 5px; overflow: hidden; display: flex;">
+                <div id="barReal" style="height: 100%; background: linear-gradient(90deg, #059669, #10b981); width: 50%; transition: width 0.4s ease;"></div>
+                <div id="barFake" style="height: 100%; background: linear-gradient(90deg, #f87171, #ef4444); width: 50%; transition: width 0.4s ease;"></div>
               </div>
             </div>
 
@@ -545,29 +561,6 @@ HTML_PAGE = """<!DOCTYPE html>
         </div>
       </div>
     </div>
-
-    <!-- TAB 4: ABOUT -->
-    <div id="tab-about" class="tab-panel">
-      <div class="card" style="line-height: 1.7; font-size: 14px; color: #cbd5e1;">
-        <div class="card-title" style="font-size: 18px;">About TRINETRA</div>
-        <p><b>TRINETRA</b> is an AI-assisted digital authenticity verification and forensic traceability system designed for multimedia manipulation detection, interpretability, and tamper-evident provenance tracking.</p>
-
-        <h4 style="color: var(--accent-cyan); margin: 18px 0 8px;">Architecture Highlights:</h4>
-        <ul style="margin-left: 20px;">
-          <li><b>YuNet Face Detection:</b> High-speed ONNX face localization with boundary padding.</li>
-          <li><b>DenseNet-201 Backbone:</b> Pretrained dense feature extractor generating 1,920-dimensional deep feature embeddings.</li>
-          <li><b>Random Forest Classifier:</b> Trained on video-level held-out splits achieving <b>83.47% accuracy</b>.</li>
-          <li><b>Grad-CAM Explainability:</b> Visual gradient activation heatmaps at <code>conv5_block32_concat</code> highlighting manipulated facial regions.</li>
-          <li><b>Dual-Layer Forensic Fingerprinting:</b> Bit-level SHA-256 cryptographic verification + 64-bit perceptual hashing (pHash) with Hamming distance verification.</li>
-        </ul>
-
-        <h4 style="color: var(--accent-cyan); margin: 18px 0 8px;">Academic References:</h4>
-        <ol style="margin-left: 20px; font-size: 13px; color: var(--text-muted);">
-          <li>A. Sar et al., <i>"A Unified Neural Framework for Real-Time Deepfake Detection Across Multimedia Modalities to Combat Misleading Content,"</i> IEEE Access, vol. 13, 2025.</li>
-          <li>M. Al-Imran et al., <i>"DeFaX: A CrossAttention Fusion Framework for Robust and Explainable Deepfake Detection,"</i> IEEE Access, vol. 13, 2025.</li>
-        </ol>
-      </div>
-    </div>
   </main>
 
   <footer>
@@ -624,16 +617,33 @@ HTML_PAGE = """<!DOCTYPE html>
         document.getElementById('placeholderMsg').style.display = 'none';
         document.getElementById('analysisContent').style.display = 'block';
 
+        const fakeProb = data.fake_probability !== null ? data.fake_probability : 0.5;
+        const realProb = data.real_probability !== null ? data.real_probability : (1.0 - fakeProb);
+        const conf = data.confidence !== null ? data.confidence : Math.max(realProb, fakeProb);
+
         const vbox = document.getElementById('verdictBox');
         vbox.className = 'verdict-box ' + (data.final_label === 'REAL' ? 'real' : (data.final_label === 'FAKE' ? 'fake' : 'unclassified'));
         document.getElementById('verdictBadge').innerText = data.verdict;
         document.getElementById('verdictSub').innerText = data.final_label === 'REAL'
-          ? 'Content verified authentic. No significant synthetic anomalies detected.'
-          : (data.final_label === 'FAKE' ? 'Potential manipulation artifacts flagged in facial features.' : 'No face found.');
+          ? `Verified authentic. Real: ${(realProb * 100).toFixed(1)}% vs Fake: ${(fakeProb * 100).toFixed(1)}% (below threshold).`
+          : (data.final_label === 'FAKE'
+            ? `Flagged as manipulated. Fake: ${(fakeProb * 100).toFixed(1)}% vs Real: ${(realProb * 100).toFixed(1)}% (exceeds threshold).`
+            : 'No face detected in image.');
 
-        document.getElementById('metricConf').innerText = data.confidence !== null ? (data.confidence * 100).toFixed(1) + '%' : 'N/A';
-        document.getElementById('metricFakeProb').innerText = data.fake_probability !== null ? (data.fake_probability * 100).toFixed(1) + '%' : 'N/A';
+        document.getElementById('metricRealProb').innerText = (realProb * 100).toFixed(1) + '%';
+        document.getElementById('metricFakeProb').innerText = (fakeProb * 100).toFixed(1) + '%';
+        document.getElementById('metricConf').innerText = (conf * 100).toFixed(1) + '%';
         document.getElementById('metricFaces').innerText = data.faces_detected;
+
+        // Populate Probability Split Bar
+        const realPct = (realProb * 100).toFixed(1);
+        const fakePct = (fakeProb * 100).toFixed(1);
+        document.getElementById('barReal').style.width = realPct + '%';
+        document.getElementById('barFake').style.width = fakePct + '%';
+        document.getElementById('barRealText').innerText = realPct + '%';
+        document.getElementById('barFakeText').innerText = fakePct + '%';
+        const threshPct = (parseFloat(document.getElementById('threshInput').value) * 100).toFixed(0);
+        document.getElementById('barThreshText').innerText = 'Decision Threshold: ' + threshPct + '%';
 
         // Populate Forensic Localization Insight
         document.getElementById('explanationText').innerText = data.forensic_explanation || 'No localization anomalies recorded.';
@@ -902,6 +912,7 @@ class TrinetraHTTPHandler(BaseHTTPRequestHandler):
                     "final_label": result.final_label,
                     "confidence": result.confidence,
                     "fake_probability": result.fake_probability,
+                    "real_probability": result.real_probability,
                     "forensic_explanation": result.forensic_explanation,
                     "faces_detected": len(result.faces),
                     "sha256": result.fingerprint["sha256"],

@@ -48,6 +48,7 @@ class ImagePrediction:
     final_label: str
     confidence: Optional[float]
     fake_probability: Optional[float]
+    real_probability: Optional[float]
     threshold: float
     faces: List[FaceCropResult]
     fingerprint: dict
@@ -211,6 +212,7 @@ def process_image(
         final_label = "UNCLASSIFIED"
         confidence = None
         fake_prob = None
+        real_prob = None
         annotated_path = None
         forensic_explanation = "No human face detected for localization analysis."
     else:
@@ -289,6 +291,7 @@ def process_image(
         # Final verdict: if any face exceeds threshold, flag as fake
         max_fake_prob = max(fake_probs)
         fake_prob = max_fake_prob
+        real_prob = 1.0 - max_fake_prob
         is_fake = max_fake_prob >= threshold
         verdict = "FAKE / MANIPULATED" if is_fake else "REAL / AUTHENTIC"
         final_label = "FAKE" if is_fake else "REAL"
@@ -331,6 +334,7 @@ def process_image(
         "final_label": final_label,
         "confidence": confidence,
         "fake_probability": fake_prob,
+        "real_probability": real_prob,
         "threshold": threshold,
         "forensic_explanation": forensic_explanation,
         "faces_detected": len(face_results),
@@ -367,6 +371,7 @@ def process_image(
         final_label=final_label,
         confidence=confidence,
         fake_probability=fake_prob,
+        real_probability=real_prob,
         threshold=threshold,
         faces=face_results,
         fingerprint=fingerprint,
