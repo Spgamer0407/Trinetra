@@ -11,7 +11,6 @@ from typing import Any, Dict
 
 import config
 from forensic_fingerprint import verify_integrity
-from process_image import process_image
 
 HOST = "127.0.0.1"
 PORT = 8080
@@ -869,6 +868,8 @@ class TrinetraHTTPHandler(BaseHTTPRequestHandler):
                 explain = fields.get("explain", "true").lower() == "true"
                 register_ledger = fields.get("register", "false").lower() == "true"
 
+                from process_image import process_image
+
                 result = process_image(
                     image_path=target_path,
                     threshold=threshold,
@@ -941,15 +942,15 @@ class TrinetraHTTPHandler(BaseHTTPRequestHandler):
 
 def run_server(port: int = PORT):
     server = HTTPServer((HOST, port), TrinetraHTTPHandler)
-    print(f"\n=======================================================")
-    print(f"  TRINETRA Web Interface Started Successfully!")
-    print(f"  URL: http://{HOST}:{port}")
-    print(f"  Press Ctrl+C to stop the server.")
-    print(f"=======================================================\n")
+    print(f"\n=======================================================", flush=True)
+    print(f"  TRINETRA Web Interface Started Successfully!", flush=True)
+    print(f"  URL: http://{HOST}:{port}", flush=True)
+    print(f"  Press Ctrl+C to stop the server.", flush=True)
+    print(f"=======================================================\n", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nStopping TRINETRA server.")
+        print("\nStopping TRINETRA server.", flush=True)
         server.server_close()
 
 
