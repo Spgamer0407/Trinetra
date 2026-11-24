@@ -58,5 +58,13 @@
         "phash": "943b6cc43776c32c",
         "verdict": "REAL",
         "confidence": 0.6599999999999999
+    },
+    {
+        "file_name": "face_frame_00217_rank_1.jpg",
+        "timestamp": "2026-11-23T06:00:42.424748+00:00",
+        "sha256": "ca3f5134641a526e679768eb12a7c9ca041246ac45f2b136c9ab3f6c3a99008e",
+        "phash": "c0382f16e67f6970",
+        "verdict": "REAL",
+        "confidence": 0.5700000000000001
     }
 ]
