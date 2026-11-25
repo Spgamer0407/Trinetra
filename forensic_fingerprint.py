@@ -132,18 +132,35 @@ def verify_integrity(
     # Step 1: Check for exact SHA-256 match
     for record in ledger:
         if record.get("sha256") == current_sha256:
-            return {
-                "verified": True,
-                "status": "VERIFIED_EXACT_MATCH",
-                "message": (
-                    f"Verified! Exact cryptographic SHA-256 match found in ledger "
-                    f"(registered as '{record.get('file_name')}' on {record.get('timestamp')}). "
-                    "Content is 100% unaltered (bit-level integrity preserved)."
-                ),
-                "query_fingerprint": current_fingerprint,
-                "matched_record": record,
-                "hamming_distance": 0,
-            }
+            rec_verdict = (record.get("verdict") or "REAL").upper()
+            if rec_verdict == "FAKE":
+                return {
+                    "verified": False,
+                    "status": "KNOWN_MANIPULATED_MEDIA",
+                    "verdict": "FAKE",
+                    "message": (
+                        f"ALERT: Exact cryptographic SHA-256 match found in ledger, "
+                        f"but this file was cataloged as FAKE / MANIPULATED (registered as '{record.get('file_name')}' on {record.get('timestamp')}). "
+                        "This is a known synthetic deepfake forgery, NOT authentic media!"
+                    ),
+                    "query_fingerprint": current_fingerprint,
+                    "matched_record": record,
+                    "hamming_distance": 0,
+                }
+            else:
+                return {
+                    "verified": True,
+                    "status": "VERIFIED_AUTHENTIC_MATCH",
+                    "verdict": "REAL",
+                    "message": (
+                        f"Verified authentic! Exact cryptographic SHA-256 match found in ledger "
+                        f"(registered as '{record.get('file_name')}' on {record.get('timestamp')}). "
+                        "Content is 100% unaltered authentic media (bit-level integrity preserved)."
+                    ),
+                    "query_fingerprint": current_fingerprint,
+                    "matched_record": record,
+                    "hamming_distance": 0,
+                }
 
     # Step 2: If image, check for perceptual match via pHash
     if current_phash != "N/A (Video / Non-Image File)":
@@ -165,27 +182,44 @@ def verify_integrity(
                         continue
 
             if best_match is not None:
+                best_verdict = (best_match.get("verdict") or "REAL").upper()
                 if min_dist <= 5:
-                    return {
-                        "verified": True,
-                        "status": "VERIFIED_PERCEPTUAL_MATCH",
-                        "message": (
-                            f"Verified with perceptual similarity! Hamming distance is {min_dist} (<= 5). "
-                            f"Matches '{best_match.get('file_name')}'. Content is visually authentic "
-                            "with minor format, compression, or resolution differences."
-                        ),
-                        "query_fingerprint": current_fingerprint,
-                        "matched_record": best_match,
-                        "hamming_distance": int(min_dist),
-                    }
+                    if best_verdict == "FAKE":
+                        return {
+                            "verified": False,
+                            "status": "KNOWN_MANIPULATED_SIMILAR",
+                            "verdict": "FAKE",
+                            "message": (
+                                f"ALERT: High visual similarity (Hamming distance {min_dist} <= 5) to a known "
+                                f"manipulated record '{best_match.get('file_name')}'. Likely a re-encoded or resized version of a known deepfake!"
+                            ),
+                            "query_fingerprint": current_fingerprint,
+                            "matched_record": best_match,
+                            "hamming_distance": int(min_dist),
+                        }
+                    else:
+                        return {
+                            "verified": True,
+                            "status": "VERIFIED_AUTHENTIC_PERCEPTUAL",
+                            "verdict": "REAL",
+                            "message": (
+                                f"Verified authentic with perceptual similarity! Hamming distance is {min_dist} (<= 5). "
+                                f"Matches registered authentic media '{best_match.get('file_name')}'. Content is visually authentic "
+                                "with minor format, compression, or resolution differences."
+                            ),
+                            "query_fingerprint": current_fingerprint,
+                            "matched_record": best_match,
+                            "hamming_distance": int(min_dist),
+                        }
                 elif min_dist <= perceptual_threshold:
                     return {
                         "verified": False,
                         "status": "SUSPICIOUS_SIMILARITY",
+                        "verdict": "SUSPICIOUS",
                         "message": (
-                            f"Suspicious similarity detected. Hamming distance is {min_dist} "
-                            f"(between 6 and {perceptual_threshold}) compared to '{best_match.get('file_name')}'. "
-                            "Content shares visual structure but may have undergone localized tampering or edits."
+                            f"Suspicious visual similarity detected (Hamming distance {min_dist} <= {perceptual_threshold}) "
+                            f"compared to '{best_match.get('file_name')}'. Content shares facial geometry but shows divergence. "
+                            "It may have undergone localized tampering or edits."
                         ),
                         "query_fingerprint": current_fingerprint,
                         "matched_record": best_match,
@@ -196,8 +230,12 @@ def verify_integrity(
 
     return {
         "verified": False,
-        "status": "NOT_FOUND",
-        "message": "No matching cryptographic or perceptual fingerprint found in the forensic ledger.",
+        "status": "NOT_REGISTERED",
+        "verdict": "UNKNOWN",
+        "message": (
+            "No matching cryptographic or perceptual fingerprint found in the forensic ledger. "
+            "This media has not been pre-registered. Use 'Fake Image Detection' (Tab 1) to inspect for AI manipulation."
+        ),
         "query_fingerprint": current_fingerprint,
         "matched_record": None,
         "hamming_distance": None,

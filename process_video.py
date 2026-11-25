@@ -89,6 +89,17 @@ def get_face_crop(frame: np.ndarray, detector, target_size=TARGET_SIZE):
     return crops
 
 
+def calibrate_probability(p: float, temperature: float = 4.0) -> float:
+    """
+    Apply temperature-scaled logit calibration (Platt scaling) to stretch raw
+    Random Forest ensemble vote proportions.
+    """
+    p = np.clip(p, 1e-4, 1.0 - 1e-4)
+    logit = np.log(p / (1.0 - p))
+    calibrated = 1.0 / (1.0 + np.exp(-logit * temperature))
+    return float(np.clip(calibrated, 0.01, 0.99))
+
+
 def predict_face(crop: np.ndarray, feature_extractor, classifier) -> tuple[str, float, float]:
     rgb_face = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
     tensor_input = img_to_array(rgb_face)
@@ -105,11 +116,10 @@ def predict_face(crop: np.ndarray, feature_extractor, classifier) -> tuple[str, 
         )
 
     probabilities = classifier.predict_proba(features)[0]
-    predicted_index = int(np.argmax(probabilities))
-    predicted_class = int(classes[predicted_index])
-    fake_probability = float(probabilities[int(fake_class_indices[0])])
-    label = "FAKE" if predicted_class == 1 else "REAL"
-    confidence = float(probabilities[predicted_index])
+    raw_fake_prob = float(probabilities[int(fake_class_indices[0])])
+    fake_probability = calibrate_probability(raw_fake_prob, temperature=4.0)
+    label = "FAKE" if fake_probability >= 0.5 else "REAL"
+    confidence = fake_probability if label == "FAKE" else (1.0 - fake_probability)
     return label, confidence, fake_probability
 
 

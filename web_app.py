@@ -691,10 +691,22 @@ HTML_PAGE = """<!DOCTYPE html>
 
         let color = '#94a3b8';
         let icon = 'ℹ️';
-        if (res.status === 'VERIFIED_EXACT_MATCH') { color = 'var(--accent-green)'; icon = '🛡️'; }
-        else if (res.status === 'VERIFIED_PERCEPTUAL_MATCH') { color = 'var(--accent-cyan)'; icon = '🔍'; }
-        else if (res.status === 'SUSPICIOUS_SIMILARITY') { color = 'var(--accent-amber)'; icon = '⚠️'; }
-        else if (res.status === 'NOT_FOUND') { color = 'var(--accent-red)'; icon = '❌'; }
+        if (res.status === 'VERIFIED_AUTHENTIC_MATCH' || res.status === 'VERIFIED_EXACT_MATCH') {
+          color = 'var(--accent-green)';
+          icon = '🛡️';
+        } else if (res.status === 'VERIFIED_AUTHENTIC_PERCEPTUAL' || res.status === 'VERIFIED_PERCEPTUAL_MATCH') {
+          color = 'var(--accent-cyan)';
+          icon = '🔍';
+        } else if (res.status === 'KNOWN_MANIPULATED_MEDIA' || res.status === 'KNOWN_MANIPULATED_SIMILAR') {
+          color = 'var(--accent-red)';
+          icon = '🚨';
+        } else if (res.status === 'SUSPICIOUS_SIMILARITY') {
+          color = 'var(--accent-amber)';
+          icon = '⚠️';
+        } else if (res.status === 'NOT_REGISTERED' || res.status === 'NOT_FOUND') {
+          color = '#94a3b8';
+          icon = '❓';
+        }
 
         resultDiv.innerHTML = `
           <div style="background: rgba(0,0,0,0.3); border: 1px solid ${color}; border-radius: 10px; padding: 20px;">

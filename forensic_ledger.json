@@ -66,5 +66,13 @@
         "phash": "c0382f16e67f6970",
         "verdict": "REAL",
         "confidence": 0.5700000000000001
+    },
+    {
+        "file_name": "Gemini_Generated_Image_fcuiynfcuiynfcui.png",
+        "timestamp": "2026-11-25T17:24:22.240444+00:00",
+        "sha256": "1a9ce7c0edb0e8393b86e1786e446448a15b839ae9f4f2d75b72f96cc0d62afb",
+        "phash": "eff4236e86829c89",
+        "verdict": "FAKE",
+        "confidence": 0.691
     }
 ]

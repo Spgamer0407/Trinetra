@@ -19,3 +19,8 @@ cropped_224.jpg
 gradcam_validation_output.jpg
 test_face.jpg
 test_patch.png
+
+# Project Reports and Artifacts
+TRINETRA_Mini_Project_Report.*
+generate_report_*
+report_assets/
